@@ -7,7 +7,7 @@ import (
 
 type (
 	Client struct {
-		endpoints []string
+		endpoint string
 	}
 
 	Request struct {
@@ -18,18 +18,14 @@ type (
 	}
 )
 
-func NewClient() *Client {
-	return &Client{}
-}
-
-func (c *Client) AddEndpoint(url string) error {
+func NewClient(url string) (*Client, error) {
 	if !govalidator.IsURL(url) {
-		return errors.WithMessage(errors.New("invalid http url"), "AddEndpoint")
+		return nil, errors.WithMessage(errors.New("invalid http url"), "AddEndpoint")
 	}
 
-	c.endpoints = append(c.endpoints, url)
-
-	return nil
+	return &Client{
+		endpoint: url,
+	}, nil
 }
 
 func (c *Client) Call(req *Request) (*Response, error) {
