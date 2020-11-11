@@ -1,7 +1,10 @@
 package jsonrpc
 
+import "github.com/pkg/errors"
+
 type (
 	Server struct {
+		port uint64
 	}
 
 	Response struct {
@@ -17,6 +20,20 @@ type (
 	}
 )
 
-func NewServer() *Server {
-	return &Server{}
+func NewServer(port uint64) (*Server, error) {
+	if port < 8000 || port >= 10000 {
+		return nil, errors.WithMessage(errors.New("available port out of range"), "NewServer")
+	}
+
+	return &Server{
+		port: port,
+	}, nil
+}
+
+func (s *Server) AddMethod(name string, fn func(*Request)) error {
+	return nil
+}
+
+func (s *Server) Bind() error {
+	return nil
 }

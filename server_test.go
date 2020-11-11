@@ -6,7 +6,19 @@ import (
 )
 
 func TestNewServer(t *testing.T) {
-	s := NewServer()
+	// success
+	s, err := NewServer(9000)
 
-	assert.Equal(t, &Server{}, s)
+	if assert.NoError(t, err) {
+		assert.Equal(t, &Server{
+			port: 9000,
+		}, s)
+	}
+
+	// failure
+	s, err = NewServer(15000)
+
+	if assert.Error(t, err) {
+		assert.Equal(t, "NewServer: available port out of range", err.Error())
+	}
 }
