@@ -1,10 +1,16 @@
 package jsonrpc
 
-import "github.com/pkg/errors"
+import (
+	"github.com/pkg/errors"
+	"github.com/valyala/fasthttp"
+	"strconv"
+	"time"
+)
 
 type (
 	Server struct {
-		port uint64
+		port    uint64
+		httpSrv *fasthttp.Server
 	}
 
 	Response struct {
@@ -25,9 +31,23 @@ func NewServer(port uint64) (*Server, error) {
 		return nil, errors.WithMessage(errors.New("available port out of range"), "NewServer")
 	}
 
-	return &Server{
+	s := &Server{
 		port: port,
-	}, nil
+		httpSrv: &fasthttp.Server{
+			Name:               "jsonrpc",
+			Concurrency:        1024,
+			DisableKeepalive:   true,
+			ReadTimeout:        10 * time.Second,
+			WriteTimeout:       10 * time.Second,
+			MaxConnsPerIP:      256,
+			MaxRequestsPerConn: 1,
+			MaxRequestBodySize: 16 * 1024 * 1024,
+			LogAllErrors:       true,
+			//Logger: ,
+		},
+	}
+
+	return s, nil
 }
 
 func (s *Server) AddMethod(name string, fn func(*Request)) error {
@@ -35,5 +55,26 @@ func (s *Server) AddMethod(name string, fn func(*Request)) error {
 }
 
 func (s *Server) Bind() error {
+	h := func(ctx *fasthttp.RequestCtx) {
+		ctx.SetBodyString("qweqwe")
+	}
+
+	s.httpSrv.Handler = fasthttp.TimeoutWithCodeHandler(h, 10*time.Second, fasthttp.StatusMessage(fasthttp.StatusRequestTimeout), fasthttp.StatusRequestTimeout)
+
+	go func(s *Server) {
+		p := strconv.Itoa(int(s.port))
+		if err := s.httpSrv.ListenAndServe("0.0.0.0:" + p); err != nil {
+			panic(errors.Wrap(err, "Server_Bind"))
+		}
+	}(s)
+
+	return nil
+}
+
+func (s *Server) Stop() error {
+	if err := s.httpSrv.Shutdown(); err != nil {
+		return errors.Wrap(err, "Server_Stop")
+	}
+
 	return nil
 }
